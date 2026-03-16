@@ -3,7 +3,7 @@ require 'config.php';
 requierePermiso('gestionar_usuarios');
 
 $mensaje = '';
-$ROLES_PROTEGIDOS = [1]; // Solo el rol Administrador está protegido
+$ROLES_PROTEGIDOS = [1,2,3]; // Solo los roles predeterminados están protegidos
 
 // Cambiar rol de usuario
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_rol'])) {
@@ -53,17 +53,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crear_rol'])) {
     }
 }
 
-// Editar permisos de un rol existente
+// Editar permisos de un rol existente (protegido)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['editar_rol'])) {
-    $rid          = (int)$_POST['editar_rol_id'];
-    $permisos_sel = $_POST['editar_permisos'] ?? [];
-    // Reemplazar todos los permisos del rol
-    $pdo->prepare("DELETE FROM roles_permisos WHERE rol_id = ?")->execute([$rid]);
-    foreach ($permisos_sel as $pid) {
-        $pdo->prepare("INSERT IGNORE INTO roles_permisos (rol_id, permiso_id) VALUES (?,?)")->execute([$rid, (int)$pid]);
+    $rid = (int)$_POST['editar_rol_id'];
+    if (in_array($rid, $ROLES_PROTEGIDOS)) {
+        $mensaje = '⚠️ No puedes editar los roles predeterminados del sistema.';
+    } else {
+        $permisos_sel = $_POST['editar_permisos'] ?? [];
+        $pdo->prepare("DELETE FROM roles_permisos WHERE rol_id = ?")->execute([$rid]);
+        foreach ($permisos_sel as $pid) {
+            $pdo->prepare("INSERT IGNORE INTO roles_permisos (rol_id, permiso_id) VALUES (?,?)")->execute([$rid, (int)$pid]);
+        }
+        registrarAcceso($pdo, $_SESSION['usuario_id'], $_SESSION['usuario_email'], "Editó permisos del rol #$rid");
+        $mensaje = '✅ Permisos del rol actualizados.';
     }
-    registrarAcceso($pdo, $_SESSION['usuario_id'], $_SESSION['usuario_email'], "Editó permisos del rol #$rid");
-    $mensaje = '✅ Permisos del rol actualizados.';
 }
 
 // Eliminar rol
@@ -322,12 +325,12 @@ document.addEventListener('DOMContentLoaded', function() {
         </td>
         <td>
           <div style="display:flex;gap:8px;">
-            <button class="btn-yellow btn-editar"
-              data-id="<?= $rol['id'] ?>"
-              data-nombre="<?= htmlspecialchars($rol['nombre'], ENT_QUOTES) ?>"
-              data-permisos="<?= htmlspecialchars(json_encode(array_map('intval', $activos)), ENT_QUOTES) ?>"
-            >✏️ Editar</button>
             <?php if (!$esProtegido): ?>
+              <button class="btn-yellow btn-editar"
+                data-id="<?= $rol['id'] ?>"
+                data-nombre="<?= htmlspecialchars($rol['nombre'], ENT_QUOTES) ?>"
+                data-permisos="<?= htmlspecialchars(json_encode(array_map('intval', $activos)), ENT_QUOTES) ?>"
+              >✏️ Editar</button>
               <button class="btn-red btn-eliminar"
                 data-id="<?= $rol['id'] ?>"
                 data-nombre="<?= htmlspecialchars($rol['nombre'], ENT_QUOTES) ?>"

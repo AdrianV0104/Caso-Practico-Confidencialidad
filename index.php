@@ -3,7 +3,7 @@ require 'config.php';
 requiereLogin();
 requierePermiso('leer');
 
-$productos = $pdo->query("SELECT p.*, u.nombre as autor FROM productos p LEFT JOIN usuarios u ON u.id = p.creado_por ORDER BY p.creado_en DESC")->fetchAll(PDO::FETCH_ASSOC);
+$productos = $pdo->query("SELECT p.*, u.nombre as autor FROM productos p LEFT JOIN usuarios u ON u.id = p.creado_por ORDER BY p.creado_en ASC")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="es">
